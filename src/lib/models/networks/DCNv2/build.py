@@ -36,7 +36,9 @@ ffi = create_extension(
     relative_to=__file__,
     with_cuda=with_cuda,
     extra_objects=extra_objects,
-    extra_compile_args=extra_compile_args
+    extra_compile_args=extra_compile_args,
+    library_dirs=["/usr/local/cuda/lib64"],
+    libraries=["cudart"]
 )
 
 if __name__ == '__main__':
