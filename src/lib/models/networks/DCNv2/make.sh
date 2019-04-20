@@ -10,5 +10,5 @@ nvcc -c -o dcn_v2_psroi_pooling_cuda.cu.o dcn_v2_psroi_pooling_cuda.cu -x cu -Xc
 nvcc -c -o dcn_v2_psroi_pooling_cuda_double.cu.o dcn_v2_psroi_pooling_cuda_double.cu -x cu -Xcompiler -fPIC
 
 cd -
-python build.py
-python build_double.py
+python3 build.py
+python3 build_double.py
