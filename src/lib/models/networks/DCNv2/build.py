@@ -1,7 +1,7 @@
 import os
 import torch
 from torch.utils.ffi import create_extension
-
+from sys import platform
 
 sources = ['src/dcn_v2.c']
 headers = ['src/dcn_v2.h']
@@ -17,6 +17,12 @@ if torch.cuda.is_available():
     extra_objects += ['src/cuda/dcn_v2_im2col_cuda.cu.o']
     extra_objects += ['src/cuda/dcn_v2_psroi_pooling_cuda.cu.o']
     with_cuda = True
+    if platform == "linux" or platform == "linux2":
+        library_dirs = [str(os.path.join(os.getenv("CUDA_HOME"), "lib64"))]
+    # Add here for other platforms
+    else:
+        library_dirs = [""]
+    libraries = ["cudart"]
 else:
     raise ValueError('CUDA is not available')
 
@@ -37,8 +43,8 @@ ffi = create_extension(
     with_cuda=with_cuda,
     extra_objects=extra_objects,
     extra_compile_args=extra_compile_args,
-    library_dirs=["/usr/local/cuda/lib64"],
-    libraries=["cudart"]
+    library_dirs=library_dirs,
+    libraries=libraries
 )
 
 if __name__ == '__main__':
