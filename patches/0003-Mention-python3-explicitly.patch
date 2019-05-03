@@ -1,0 +1,34 @@
+From d4434e2e9edf33473879d5e96f3aca7c607ff253 Mon Sep 17 00:00:00 2001
+From: Suriya Narayanan Lakshmanan <suriya@cyngn.com>
+Date: Fri, 19 Apr 2019 22:48:57 -0700
+Subject: [PATCH 3/4] Mention python3 explicitly
+
+---
+ src/lib/external/Makefile             | 2 +-
+ src/lib/models/networks/DCNv2/make.sh | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/lib/external/Makefile b/src/lib/external/Makefile
+index a482398..fc85a6f 100644
+--- a/src/lib/external/Makefile
++++ b/src/lib/external/Makefile
+@@ -1,3 +1,3 @@
+ all:
+-	python setup.py build_ext --inplace
++	python3 setup.py build_ext --inplace
+ 	rm -rf build
+diff --git a/src/lib/models/networks/DCNv2/make.sh b/src/lib/models/networks/DCNv2/make.sh
+index d489f7c..3f5c30a 100755
+--- a/src/lib/models/networks/DCNv2/make.sh
++++ b/src/lib/models/networks/DCNv2/make.sh
+@@ -10,5 +10,5 @@ nvcc -c -o dcn_v2_psroi_pooling_cuda.cu.o dcn_v2_psroi_pooling_cuda.cu -x cu -Xc
+ nvcc -c -o dcn_v2_psroi_pooling_cuda_double.cu.o dcn_v2_psroi_pooling_cuda_double.cu -x cu -Xcompiler -fPIC
+ 
+ cd -
+-python build.py
+-python build_double.py
++python3 build.py
++python3 build_double.py
+-- 
+2.17.1
+

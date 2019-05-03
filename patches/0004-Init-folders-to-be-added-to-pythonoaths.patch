@@ -1,0 +1,31 @@
+From e3d97a290b08493d35dadc6f8de49bce279be8ce Mon Sep 17 00:00:00 2001
+From: Suriya Narayanan Lakshmanan <suriya@cyngn.com>
+Date: Fri, 19 Apr 2019 22:49:21 -0700
+Subject: [PATCH 4/4] Init folders to be added to pythonoaths
+
+---
+ src/lib/__init__.py                 | 0
+ src/lib/detectors/__init__.py       | 0
+ src/lib/models/__init__.py          | 0
+ src/lib/models/networks/__init__.py | 0
+ 4 files changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 src/lib/__init__.py
+ create mode 100644 src/lib/detectors/__init__.py
+ create mode 100644 src/lib/models/__init__.py
+ create mode 100644 src/lib/models/networks/__init__.py
+
+diff --git a/src/lib/__init__.py b/src/lib/__init__.py
+new file mode 100644
+index 0000000..e69de29
+diff --git a/src/lib/detectors/__init__.py b/src/lib/detectors/__init__.py
+new file mode 100644
+index 0000000..e69de29
+diff --git a/src/lib/models/__init__.py b/src/lib/models/__init__.py
+new file mode 100644
+index 0000000..e69de29
+diff --git a/src/lib/models/networks/__init__.py b/src/lib/models/networks/__init__.py
+new file mode 100644
+index 0000000..e69de29
+-- 
+2.17.1
+

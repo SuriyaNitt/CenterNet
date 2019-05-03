@@ -1,0 +1,30 @@
+From 2ac621ee54dfea8221155e0f785dc12d5e9d04bb Mon Sep 17 00:00:00 2001
+From: Suriya Narayanan Lakshmanan <suriya@cyngn.com>
+Date: Fri, 19 Apr 2019 22:48:22 -0700
+Subject: [PATCH 2/4] osp.dirname doesn't seem to work
+
+---
+ src/_init_paths.py | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/_init_paths.py b/src/_init_paths.py
+index db11e08..1b16db5 100644
+--- a/src/_init_paths.py
++++ b/src/_init_paths.py
+@@ -1,11 +1,12 @@
+ import os.path as osp
+ import sys
++import os
+ 
+ def add_path(path):
+     if path not in sys.path:
+         sys.path.insert(0, path)
+ 
+-this_dir = osp.dirname(__file__)
++this_dir = os.path.join(os.environ["CenterNet_ROOT"], "src")
+ 
+ # Add lib to PYTHONPATH
+ lib_path = osp.join(this_dir, 'lib')
+-- 
+2.17.1
+
