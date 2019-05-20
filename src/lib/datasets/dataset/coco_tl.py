@@ -10,7 +10,7 @@ import os
 
 import torch.utils.data as data
 
-class COCO(data.Dataset):
+class COCOTL(data.Dataset):
   num_classes = 2
   default_resolution = [512, 512]
   mean = np.array([0.40789654, 0.44719302, 0.47026115],
@@ -19,7 +19,7 @@ class COCO(data.Dataset):
                    dtype=np.float32).reshape(1, 1, 3)
 
   def __init__(self, opt, split):
-    super(COCO, self).__init__()
+    super(COCOTL, self).__init__()
     self.data_dir = os.path.join(opt.data_dir, 'coco')
     self.img_dir = os.path.join(self.data_dir, 'images', '{}2017'.format(split))
     if split == 'test':
@@ -39,7 +39,26 @@ class COCO(data.Dataset):
     self.class_name = ['__background__', 'traffic light']
     self._valid_ids = [
       1, 11]
-    self.cat_ids = {v: i for i, v in enumerate(self._valid_ids)}
+    # self._valid_ids = [
+    #   1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13,
+    #   14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+    #   24, 25, 27, 28, 31, 32, 33, 34, 35, 36,
+    #   37, 38, 39, 40, 41, 42, 43, 44, 46, 47,
+    #   48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
+    #   58, 59, 60, 61, 62, 63, 64, 65, 67, 70,
+    #   72, 73, 74, 75, 76, 77, 78, 79, 80, 81,
+    #   82, 84, 85, 86, 87, 88, 89, 90]
+    self.cat_ids = {
+      1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0, 11:1, 13:0,
+      14:0, 15:0, 16:0, 17:0, 18:0, 19:0, 20:0, 21:0, 22:0, 23:0,
+      24:0, 25:0, 27:0, 28:0, 31:0, 32:0, 33:0, 34:0, 35:0, 36:0,
+      37:0, 38:0, 39:0, 40:0, 41:0, 42:0, 43:0, 44:0, 46:0, 47:0,
+      48:0, 49:0, 50:0, 51:0, 52:0, 53:0, 54:0, 55:0, 56:0, 57:0,
+      58:0, 59:0, 60:0, 61:0, 62:0, 63:0, 64:0, 65:0, 67:0, 70:0,
+      72:0, 73:0, 74:0, 75:0, 76:0, 77:0, 78:0, 79:0, 80:0, 81:0,
+      82:0, 84:0, 85:0, 86:0, 87:0, 88:0, 89:0, 90:0
+    }
+    # self.cat_ids = {v: i for i, v in enumerate(self._valid_ids)}
     self.voc_color = [(v // 32 * 64 + 64, (v // 8) % 4 * 64, v % 8 * 32) \
                       for v in range(1, self.num_classes + 1)]
     self._data_rng = np.random.RandomState(123)
