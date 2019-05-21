@@ -96,13 +96,11 @@ class CTDetDataset(data.Dataset):
                     draw_umich_gaussian
 
     gt_det = []
-    out_img = np.copy(img)
     for k in range(num_objs):
       ann = anns[k]
       bbox = self._coco_box_to_bbox(ann['bbox'])
       if ann['category_id'] in self._valid_ids:
         cls_id = int(self.cat_ids[ann['category_id']])
-        cv2.rectangle(out_img, (bbox.x, bbox.y), (bbox.x + bbox.width, bbox.y + bbox.height), (0, 0, 0))
 
         if flipped:
           bbox[[0, 2]] = width - bbox[[2, 0]] - 1
@@ -129,9 +127,6 @@ class CTDetDataset(data.Dataset):
             draw_dense_reg(dense_wh, hm.max(axis=0), ct_int, wh[k], radius)
           gt_det.append([ct[0] - w / 2, ct[1] - h / 2,
                         ct[0] + w / 2, ct[1] + h / 2, 1, cls_id])
-
-    cv2.imshow("Out Image", out_img)
-    cv2.waitKey(0)
 
     ret = {'input': inp, 'hm': hm, 'reg_mask': reg_mask, 'ind': ind, 'wh': wh}
     if self.opt.dense_wh:
