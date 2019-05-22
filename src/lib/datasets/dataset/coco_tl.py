@@ -11,7 +11,7 @@ import os
 import torch.utils.data as data
 
 class COCOTL(data.Dataset):
-  num_classes = 2
+  num_classes = 1
   default_resolution = [512, 512]
   mean = np.array([0.40789654, 0.44719302, 0.47026115],
                    dtype=np.float32).reshape(1, 1, 3)
@@ -36,9 +36,9 @@ class COCOTL(data.Dataset):
           self.data_dir, 'annotations',
           'instances_{}2017.json').format(split)
     self.max_objs = 128
-    self.class_name = ['__background__', 'traffic light']
+    self.class_name = ['traffic light']
     self._valid_ids = [
-      1, 10]
+      10]
     # self._valid_ids = [
     #   1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13,
     #   14, 15, 16, 17, 18, 19, 20, 21, 22, 23,

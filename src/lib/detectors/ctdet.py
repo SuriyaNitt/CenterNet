@@ -85,6 +85,9 @@ class CtdetDetector(BaseDetector):
 
   def show_results(self, debugger, image, results):
     debugger.add_img(image, img_id='ctdet')
+
+    print("num classes: {}".format(self.num_classes))
+
     for j in range(1, self.num_classes + 1):
       for bbox in results[j]:
         if bbox[4] > self.opt.vis_thresh:
