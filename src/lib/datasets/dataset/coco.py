@@ -127,3 +127,22 @@ class COCO(data.Dataset):
     coco_eval.evaluate()
     coco_eval.accumulate()
     coco_eval.summarize()
+
+    # Categories of concern
+    cats_eval = {
+      'person': 1,
+      'bus': 6,
+      'bicycle': 2,
+      'truck': 8,
+      'car': 3,
+      'motorcycle': 4,
+      'traffic light': 10,
+      'fire hydrant': 11
+    }
+
+    for category in cats_eval:
+      print("\n\n######## Category: ", category, "########")
+      coco_eval.params.catIds = [cats_eval[category]]
+      coco_eval.evaluate()
+      coco_eval.accumulate()
+      coco_eval.summarize()
