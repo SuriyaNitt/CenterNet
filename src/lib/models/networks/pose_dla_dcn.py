@@ -426,7 +426,7 @@ class Interpolate(nn.Module):
 
 class DLASeg(nn.Module):
     def __init__(self, base_name, heads, pretrained, down_ratio, final_kernel,
-                 last_level, head_conv, out_channel=0):
+                 last_level, head_conv, out_channel=0, enable_mixed_precision=False):
         super(DLASeg, self).__init__()
         assert down_ratio in [2, 4, 8, 16]
         self.first_level = int(np.log2(down_ratio))
@@ -435,6 +435,7 @@ class DLASeg(nn.Module):
         channels = self.base.channels
         scales = [2 ** i for i in range(len(channels[self.first_level:]))]
         self.dla_up = DLAUp(self.first_level, channels[self.first_level:], scales)
+        self.enable_mixed_precision = enable_mixed_precision
 
         if out_channel == 0:
             out_channel = channels[self.first_level]
@@ -468,7 +469,13 @@ class DLASeg(nn.Module):
             self.__setattr__(head, fc)
 
     def forward(self, x):
+        if self.enable_mixed_precision:
+            x = x.half()
+            self.base = self.base.half()
         x = self.base(x)
+
+        if self.enable_mixed_precision:
+            x = [item.float() for item in x]
         x = self.dla_up(x)
 
         y = []
@@ -482,12 +489,13 @@ class DLASeg(nn.Module):
         return [z]
     
 
-def get_pose_net(num_layers, heads, head_conv=256, down_ratio=4):
+def get_pose_net(num_layers, heads, head_conv=256, down_ratio=4, enable_mixed_precision=False):
   model = DLASeg('dla{}'.format(num_layers), heads,
                  pretrained=True,
                  down_ratio=down_ratio,
                  final_kernel=1,
                  last_level=5,
-                 head_conv=head_conv)
+                 head_conv=head_conv,
+                 enable_mixed_precision=enable_mixed_precision)
   return model
 
