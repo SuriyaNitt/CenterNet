@@ -69,6 +69,8 @@ class opts(object):
                                   '64 for resnets and 256 for dla.')
     self.parser.add_argument('--down_ratio', type=int, default=4,
                              help='output stride. Currently only supports 4.')
+    self.parser.add_argument("--enable_mixed_precision", type=bool, default=False, 
+                             help="flag to enable/disable mixed precision training")
 
     # input
     self.parser.add_argument('--input_res', type=int, default=-1, 

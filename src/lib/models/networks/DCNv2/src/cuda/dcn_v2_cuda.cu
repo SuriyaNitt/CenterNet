@@ -39,6 +39,45 @@ __global__ void createBatchGemmBuffer(const float **input_b, float **output_b,
     }
 }
 
+__global__ void createBatchGemmBuffer(const at::Half **input_b, at::Half **output_b,
+                                        at::Half **columns_b, const at::Half **ones_b,
+                                        const at::Half **weight_b, const at::Half **bias_b,
+                                        at::Half *input, at::Half *output,
+                                        at::Half *columns, at::Half *ones,
+                                        at::Half *weight, at::Half *bias,
+                                        const int input_stride, const int output_stride,
+                                        const int columns_stride, const int ones_stride,
+                                        const int num_batches)
+{
+    const int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < num_batches)
+    {
+        input_b[idx] = input + idx * input_stride;
+        output_b[idx] = output + idx * output_stride;
+        columns_b[idx] = columns + idx * columns_stride;
+        ones_b[idx] = ones + idx * ones_stride;
+        // share weights and bias within a Mini-Batch
+        weight_b[idx] = weight;
+        bias_b[idx] = bias;
+    }
+}
+
+void HgemmBatched(THCState *state, char transa, char transb, int64_t m, int64_t n, int64_t k,
+    at::Half alpha, const at::Half *a[], int64_t lda, const at::Half *b[], int64_t ldb,
+    at::Half beta, at::Half *c[], int64_t ldc, int64_t batchCount) {
+    if( (m >= INT_MAX) || (n >= INT_MAX) || (k >= INT_MAX) || (lda >= INT_MAX)  || (ldb >= INT_MAX) || (ldc >= INT_MAX) || (batchCount >= INT_MAX) )
+    {
+        THError("Cublas_SgemmBatched only supports m, n, k, lda, ldb, ldc, batchCount"
+                  "with the bound [val] <= %d", INT_MAX);
+    }
+
+    const int64_t stridea = (transa == 'N' || transa == 'n') ? lda*k : lda*n;
+    const int64_t strideb = (transb == 'N' || transb == 'n') ? ldb*n : ldb*k;
+    const int64_t stridec = ldc*n;
+
+    THCudaBlas_HgemmStridedBatched(state, transa, transb, m, n, k, alpha, *a, lda, stridea, *b, ldb, strideb, beta, *c, ldc, stridec, batchCount);
+}
+
 at::Tensor
 dcn_v2_cuda_forward(const at::Tensor &input,
                     const at::Tensor &weight,
@@ -55,7 +94,7 @@ dcn_v2_cuda_forward(const at::Tensor &input,
                     const int dilation_w,
                     const int deformable_group)
 {
-    using scalar_t = float;
+    using scalar_t = at::Half;
     // THCAssertSameGPU(THCudaTensor_checkGPU(state, 5, input, weight, bias, offset, mask));
     AT_ASSERTM(input.type().is_cuda(), "input must be a CUDA tensor");
     AT_ASSERTM(weight.type().is_cuda(), "weight must be a CUDA tensor");
@@ -93,13 +132,13 @@ dcn_v2_cuda_forward(const at::Tensor &input,
     // prepare for batch-wise computing, which is significantly faster than instance-wise computing
     // when batch size is large.
     // launch batch threads
-    int matrices_size = batch * sizeof(float *);
-    auto input_b = static_cast<const float **>(THCudaMalloc(state, matrices_size));
-    auto output_b = static_cast<float **>(THCudaMalloc(state, matrices_size));
-    auto columns_b = static_cast<float **>(THCudaMalloc(state, matrices_size));
-    auto ones_b = static_cast<const float **>(THCudaMalloc(state, matrices_size));
-    auto weight_b = static_cast<const float **>(THCudaMalloc(state, matrices_size));
-    auto bias_b = static_cast<const float **>(THCudaMalloc(state, matrices_size));
+    int matrices_size = batch * sizeof(at::Half *);
+    auto input_b = static_cast<const at::Half **>(THCudaMalloc(state, matrices_size));
+    auto output_b = static_cast<at::Half **>(THCudaMalloc(state, matrices_size));
+    auto columns_b = static_cast<at::Half **>(THCudaMalloc(state, matrices_size));
+    auto ones_b = static_cast<const at::Half **>(THCudaMalloc(state, matrices_size));
+    auto weight_b = static_cast<const at::Half **>(THCudaMalloc(state, matrices_size));
+    auto bias_b = static_cast<const at::Half **>(THCudaMalloc(state, matrices_size));
 
     const int block = 128;
     const int grid = (batch + block - 1) / block;
@@ -123,18 +162,18 @@ dcn_v2_cuda_forward(const at::Tensor &input,
     long m_ = channels_out;
     long n_ = height_out * width_out;
     long k_ = 1;
-    THCudaBlas_SgemmBatched(state,
-                            't',
-                            'n',
-                            n_,
-                            m_,
-                            k_,
-                            1.0f,
-                            ones_b, k_,
-                            bias_b, k_,
-                            0.0f,
-                            output_b, n_,
-                            batch);
+    HgemmBatched(state,
+                't',
+                'n',
+                n_,
+                m_,
+                k_,
+                1.0f,
+                ones_b, k_,
+                bias_b, k_,
+                0.0f,
+                output_b, n_,
+                batch);
 
     modulated_deformable_im2col_cuda(THCState_getCurrentStream(state),
                                      input.data<scalar_t>(),
@@ -149,18 +188,18 @@ dcn_v2_cuda_forward(const at::Tensor &input,
     long m = channels_out;
     long n = height_out * width_out;
     long k = channels * kernel_h * kernel_w;
-    THCudaBlas_SgemmBatched(state,
-                            'n',
-                            'n',
-                            n,
-                            m,
-                            k,
-                            1.0f,
-                            (const float **)columns_b, n,
-                            weight_b, k,
-                            1.0f,
-                            output_b, n,
-                            batch);
+    HgemmBatched(state,
+                'n',
+                'n',
+                n,
+                m,
+                k,
+                1.0f,
+                (const float **)columns_b, n,
+                weight_b, k,
+                1.0f,
+                output_b, n,
+                batch);
 
     THCudaFree(state, input_b);
     THCudaFree(state, output_b);

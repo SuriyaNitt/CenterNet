@@ -27,6 +27,8 @@ class CtdetDetector(BaseDetector):
   
   def process(self, images, return_time=False):
     with torch.no_grad():
+      if self.enable_mixed_precision:
+        images = images.half()
       output = self.model(images)[-1]
       hm = output['hm'].sigmoid_()
       wh = output['wh']

@@ -12,6 +12,8 @@ from models.model import create_model, load_model
 from utils.image import get_affine_transform
 from utils.debugger import Debugger
 
+from apex import amp
+
 
 class BaseDetector(object):
   def __init__(self, opt):
@@ -26,6 +28,10 @@ class BaseDetector(object):
     self.model = self.model.to(opt.device)
     self.model.eval()
 
+    if opt.enable_mixed_precision:
+      self.model = amp.initialize(self.model)
+
+    self.enable_mixed_precision = opt.enable_mixed_precision
     self.mean = np.array(opt.mean, dtype=np.float32).reshape(1, 1, 3)
     self.std = np.array(opt.std, dtype=np.float32).reshape(1, 1, 3)
     self.max_per_image = 100
