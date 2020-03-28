@@ -64,6 +64,8 @@
 #ifndef DCN_V2_IM2COL_CUDA
 #define DCN_V2_IM2COL_CUDA
 
+#include <cuda_fp16.h>
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -93,6 +95,14 @@ extern "C"
                                          const int dilation_h, const int dilation_w,
                                          const int deformable_group,
                                          float *grad_offset, float *grad_mask);
+
+  void modulated_deformable_im2col_cuda_half(cudaStream_t stream,
+                                          const __half* data_im, const __half* data_offset, const __half* data_mask,
+                                          const int batch_size, const int channels, const int height_im, const int width_im, 
+                                          const int height_col, const int width_col, const int kernel_h, const int kernel_w,
+                                          const int pad_h, const int pad_w, const int stride_h, const int stride_w, 
+                                          const int dilation_h, const int dilation_w,
+                                          const int deformable_group, __half* data_col);
 
 #ifdef __cplusplus
 }

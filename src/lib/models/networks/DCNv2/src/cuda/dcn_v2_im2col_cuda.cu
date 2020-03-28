@@ -53,6 +53,37 @@ __device__ float dmcn_im2col_bilinear(const float *bottom_data, const int data_w
   return val;
 }
 
+__device__ float dmcn_im2col_bilinear_half(const __half *bottom_data, const int data_width,
+  const int height, const int width, float h, float w)
+{
+  int h_low = floor(h);
+  int w_low = floor(w);
+  int h_high = h_low + 1;
+  int w_high = w_low + 1;
+
+  float lh = h - h_low;
+  float lw = w - w_low;
+  float hh = 1 - lh, hw = 1 - lw;
+
+  float v1 = 0;
+  if (h_low >= 0 && w_low >= 0)
+  v1 = __half2float(bottom_data[h_low * data_width + w_low]);
+  float v2 = 0;
+  if (h_low >= 0 && w_high <= width - 1)
+  v2 = __half2float(bottom_data[h_low * data_width + w_high]);
+  float v3 = 0;
+  if (h_high <= height - 1 && w_low >= 0)
+  v3 = __half2float(bottom_data[h_high * data_width + w_low]);
+  float v4 = 0;
+  if (h_high <= height - 1 && w_high <= width - 1)
+  v4 = __half2float(bottom_data[h_high * data_width + w_high]);
+
+  float w1 = hh * hw, w2 = hh * lw, w3 = lh * hw, w4 = lh * lw;
+
+  float val = (w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4);
+  return val;
+}
+
 __device__ float dmcn_get_gradient_weight(float argmax_h, float argmax_w,
                                           const int h, const int w, const int height, const int width)
 {
@@ -242,9 +273,9 @@ __global__ void modulated_deformable_im2col_half_gpu_kernel(const int n,
         const int data_offset_h_ptr = ((2 * (i * kernel_w + j)) * height_col + h_col) * width_col + w_col;
         const int data_offset_w_ptr = ((2 * (i * kernel_w + j) + 1) * height_col + h_col) * width_col + w_col;
         const int data_mask_hw_ptr = ((i * kernel_w + j) * height_col + h_col) * width_col + w_col;
-        const __half offset_h = data_offset_ptr[data_offset_h_ptr];
-        const __half offset_w = data_offset_ptr[data_offset_w_ptr];
-        const __half mask = data_mask_ptr[data_mask_hw_ptr];
+        const float offset_h = __half2float(data_offset_ptr[data_offset_h_ptr]);
+        const float offset_w = __half2float(data_offset_ptr[data_offset_w_ptr]);
+        const float mask = __half2float(data_mask_ptr[data_mask_hw_ptr]);
         float val = static_cast<float>(0);
         const float h_im = h_in + i * dilation_h + offset_h;
         const float w_im = w_in + j * dilation_w + offset_w;
@@ -256,9 +287,9 @@ __global__ void modulated_deformable_im2col_half_gpu_kernel(const int n,
           //const int cur_height = height - h_in;
           //const int cur_width = width - w_in;
           //val = dmcn_im2col_bilinear(data_im_ptr, width, cur_height, cur_width, map_h, map_w);
-          val = dmcn_im2col_bilinear(data_im_ptr, width, height, width, h_im, w_im);
+          val = dmcn_im2col_bilinear_half(data_im_ptr, width, height, width, h_im, w_im);
         }
-        *data_col_ptr = val * mask;
+        *data_col_ptr = __float2half_ru(val * mask);
         // data_col_ptr += batch_size * height_col * width_col;
         data_col_ptr += height_col * width_col;
       }
@@ -423,13 +454,13 @@ void modulated_deformable_im2col_cuda(cudaStream_t stream,
 
 }
 
-void modulated_deformable_im2col_cuda(cudaStream_t stream,
-  const at::Half* data_im, const at::Half* data_offset, const at::Half* data_mask,
+void modulated_deformable_im2col_cuda_half(cudaStream_t stream,
+  const __half* data_im, const __half* data_offset, const __half* data_mask,
   const int batch_size, const int channels, const int height_im, const int width_im, 
   const int height_col, const int width_col, const int kernel_h, const int kernel_w,
   const int pad_h, const int pad_w, const int stride_h, const int stride_w, 
   const int dilation_h, const int dilation_w,
-  const int deformable_group, at::Half* data_col) {
+  const int deformable_group, __half* data_col) {
   // num_axes should be smaller than block size
   const int channel_per_deformable_group = channels / deformable_group;
   const int num_kernels = channels * batch_size * height_col * width_col;

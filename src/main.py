@@ -15,6 +15,7 @@ from logger import Logger
 from datasets.dataset_factory import get_dataset
 from trains.train_factory import train_factory
 
+from apex import amp
 
 def main(opt):
   torch.manual_seed(opt.seed)
@@ -35,6 +36,10 @@ def main(opt):
   if opt.load_model != '':
     model, optimizer, start_epoch = load_model(
       model, opt.load_model, optimizer, opt.resume, opt.lr, opt.lr_step)
+
+  if opt.gpus[0] >= 0:
+    model = model.cuda()
+    model, optimizer = amp.initialize(model, optimizer)
 
   Trainer = train_factory[opt.task]
   trainer = Trainer(opt, model, optimizer)

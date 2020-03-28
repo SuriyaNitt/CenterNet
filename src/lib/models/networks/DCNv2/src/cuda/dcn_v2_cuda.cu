@@ -129,84 +129,84 @@ dcn_v2_cuda_forward(const at::Tensor &input,
     auto columns = at::empty({batch, channels * kernel_h * kernel_w, 1 * height_out * width_out}, input.options());
     auto output = at::empty({batch, channels_out, height_out, width_out}, input.options());
 
-    // prepare for batch-wise computing, which is significantly faster than instance-wise computing
-    // when batch size is large.
-    // launch batch threads
-    int matrices_size = batch * sizeof(at::Half *);
-    auto input_b = static_cast<const at::Half **>(THCudaMalloc(state, matrices_size));
-    auto output_b = static_cast<at::Half **>(THCudaMalloc(state, matrices_size));
-    auto columns_b = static_cast<at::Half **>(THCudaMalloc(state, matrices_size));
-    auto ones_b = static_cast<const at::Half **>(THCudaMalloc(state, matrices_size));
-    auto weight_b = static_cast<const at::Half **>(THCudaMalloc(state, matrices_size));
-    auto bias_b = static_cast<const at::Half **>(THCudaMalloc(state, matrices_size));
+    // // prepare for batch-wise computing, which is significantly faster than instance-wise computing
+    // // when batch size is large.
+    // // launch batch threads
+    // int matrices_size = batch * sizeof(at::Half *);
+    // auto input_b = static_cast<const at::Half **>(THCudaMalloc(state, matrices_size));
+    // auto output_b = static_cast<at::Half **>(THCudaMalloc(state, matrices_size));
+    // auto columns_b = static_cast<at::Half **>(THCudaMalloc(state, matrices_size));
+    // auto ones_b = static_cast<const at::Half **>(THCudaMalloc(state, matrices_size));
+    // auto weight_b = static_cast<const at::Half **>(THCudaMalloc(state, matrices_size));
+    // auto bias_b = static_cast<const at::Half **>(THCudaMalloc(state, matrices_size));
 
-    const int block = 128;
-    const int grid = (batch + block - 1) / block;
+    // const int block = 128;
+    // const int grid = (batch + block - 1) / block;
 
-    createBatchGemmBuffer<<<grid, block, 0, THCState_getCurrentStream(state)>>>(
-        input_b, output_b,
-        columns_b, ones_b,
-        weight_b, bias_b,
-        input.data<scalar_t>(),
-        output.data<scalar_t>(),
-        columns.data<scalar_t>(),
-        ones.data<scalar_t>(),
-        weight.data<scalar_t>(),
-        bias.data<scalar_t>(),
-        channels * width * height,
-        channels_out * width_out * height_out,
-        channels * kernel_h * kernel_w * height_out * width_out,
-        height_out * width_out,
-        batch);
+    // createBatchGemmBuffer<<<grid, block, 0, THCState_getCurrentStream(state)>>>(
+    //     input_b, output_b,
+    //     columns_b, ones_b,
+    //     weight_b, bias_b,
+    //     input.data<scalar_t>(),
+    //     output.data<scalar_t>(),
+    //     columns.data<scalar_t>(),
+    //     ones.data<scalar_t>(),
+    //     weight.data<scalar_t>(),
+    //     bias.data<scalar_t>(),
+    //     channels * width * height,
+    //     channels_out * width_out * height_out,
+    //     channels * kernel_h * kernel_w * height_out * width_out,
+    //     height_out * width_out,
+    //     batch);
 
-    long m_ = channels_out;
-    long n_ = height_out * width_out;
-    long k_ = 1;
-    HgemmBatched(state,
-                't',
-                'n',
-                n_,
-                m_,
-                k_,
-                1.0f,
-                ones_b, k_,
-                bias_b, k_,
-                0.0f,
-                output_b, n_,
-                batch);
+    // long m_ = channels_out;
+    // long n_ = height_out * width_out;
+    // long k_ = 1;
+    // HgemmBatched(state,
+    //             't',
+    //             'n',
+    //             n_,
+    //             m_,
+    //             k_,
+    //             1.0f,
+    //             ones_b, k_,
+    //             bias_b, k_,
+    //             0.0f,
+    //             output_b, n_,
+    //             batch);
 
-    modulated_deformable_im2col_cuda(THCState_getCurrentStream(state),
-                                     input.data<scalar_t>(),
-                                     offset.data<scalar_t>(),
-                                     mask.data<scalar_t>(),
-                                     batch, channels, height, width,
-                                     height_out, width_out, kernel_h, kernel_w,
-                                     pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w,
-                                     deformable_group,
-                                     columns.data<scalar_t>());
+    // modulated_deformable_im2col_cuda_half(THCState_getCurrentStream(state),
+    //                                  (__half*) input.data<scalar_t>(),
+    //                                  (__half*) offset.data<scalar_t>(),
+    //                                  (__half*) mask.data<scalar_t>(),
+    //                                  batch, channels, height, width,
+    //                                  height_out, width_out, kernel_h, kernel_w,
+    //                                  pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w,
+    //                                  deformable_group,
+    //                                  (__half*) columns.data<scalar_t>());
 
-    long m = channels_out;
-    long n = height_out * width_out;
-    long k = channels * kernel_h * kernel_w;
-    HgemmBatched(state,
-                'n',
-                'n',
-                n,
-                m,
-                k,
-                1.0f,
-                (const float **)columns_b, n,
-                weight_b, k,
-                1.0f,
-                output_b, n,
-                batch);
+    // long m = channels_out;
+    // long n = height_out * width_out;
+    // long k = channels * kernel_h * kernel_w;
+    // HgemmBatched(state,
+    //             'n',
+    //             'n',
+    //             n,
+    //             m,
+    //             k,
+    //             1.0f,
+    //             (const at::Half **)columns_b, n,
+    //             weight_b, k,
+    //             1.0f,
+    //             output_b, n,
+    //             batch);
 
-    THCudaFree(state, input_b);
-    THCudaFree(state, output_b);
-    THCudaFree(state, columns_b);
-    THCudaFree(state, ones_b);
-    THCudaFree(state, weight_b);
-    THCudaFree(state, bias_b);
+    // THCudaFree(state, input_b);
+    // THCudaFree(state, output_b);
+    // THCudaFree(state, columns_b);
+    // THCudaFree(state, ones_b);
+    // THCudaFree(state, weight_b);
+    // THCudaFree(state, bias_b);
     return output;
 }
 
